@@ -1,10 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const popupRef = useRef(null);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isDropdownOpen, setDropdownOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [showSignInOptions, setShowSignInOptions] = useState(false);
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -16,48 +21,69 @@ const LoginPage = () => {
   };
 
   useEffect(() => {
-    const applyResponsiveStyles = () => {
-      const width = window.innerWidth;
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
 
-      if (width <= 768) {
-        styles.headerContainer.flexDirection = "column";
-        styles.headerContainer.alignItems = "flex-start";
-        styles.navLinks.flexDirection = "column";
-        styles.navLinks.gap = "10px";
-        styles.logoContainer.justifyContent = "center";
-        styles.navWrapper.justifyContent = "flex-start";
-        styles.card.width = "90%";
-        styles.card.padding = "20px";
-        styles.title.fontSize = "1rem";
-      } else {
-        styles.headerContainer.flexDirection = "row";
-        styles.navLinks.flexDirection = "row";
-        styles.navLinks.gap = "18px";
-        styles.navWrapper.justifyContent = "flex-end";
-        styles.card.width = "100%";
+    const handleClickOutside = (e) => {
+      if (popupRef.current && !popupRef.current.contains(e.target)) {
+        setShowSignInOptions(false);
       }
     };
 
-    applyResponsiveStyles(); // Call on mount
-    window.addEventListener("resize", applyResponsiveStyles);
-    return () => window.removeEventListener("resize", applyResponsiveStyles);
+    window.addEventListener("resize", handleResize);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
+
+  const dynamicStyles = {
+    headerContainer: {
+      ...styles.headerContainer,
+      flexDirection: isMobile ? "column" : "row",
+      alignItems: isMobile ? "flex-start" : "center",
+    },
+    navLinks: {
+      ...styles.navLinks,
+      flexDirection: isMobile ? "column" : "row",
+      gap: isMobile ? "10px" : "18px",
+    },
+    logoContainer: {
+      ...styles.logoContainer,
+      justifyContent: isMobile ? "center" : "flex-start",
+    },
+    navWrapper: {
+      ...styles.navWrapper,
+      justifyContent: isMobile ? "flex-start" : "flex-end",
+    },
+    card: {
+      ...styles.card,
+      width: isMobile ? "90%" : "100%",
+      padding: isMobile ? "20px" : "30px",
+    },
+    title: {
+      ...styles.title,
+      fontSize: isMobile ? "1rem" : "1.2rem",
+    },
+  };
 
   return (
     <div style={styles.page}>
       {/* -------- HEADER -------- */}
       <header style={styles.header}>
-        <div style={styles.headerContainer}>
-          <div style={styles.logoContainer}>
+        <div style={dynamicStyles.headerContainer}>
+          <div style={dynamicStyles.logoContainer}>
             <img
               src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSlkwUnVHIhrkSiLdgX6mXkeD-hi47TxsHbLQ&s"
               alt="AMU Logo"
               style={styles.logo}
             />
-            <span style={styles.title}>ALIGARH MUSLIM UNIVERSITY</span>
+            <span style={dynamicStyles.title}>ALIGARH MUSLIM UNIVERSITY</span>
           </div>
-          <div style={styles.navWrapper}>
-            <ul style={styles.navLinks}>
+          <div style={dynamicStyles.navWrapper}>
+            <ul style={dynamicStyles.navLinks}>
               <li>
                 <a href="/" style={styles.navLink}>
                   Home
@@ -83,25 +109,31 @@ const LoginPage = () => {
                   Contact
                 </a>
               </li>
-              <li style={styles.dropdown}>
+              <li
+                style={styles.dropdown}
+                onMouseEnter={() => setDropdownOpen(true)}
+                onMouseLeave={() => setDropdownOpen(false)}
+              >
                 <span style={styles.navLink}>Links ▾</span>
-                <ul style={styles.dropdownContent}>
-                  <li>
-                    <a href="#library" style={styles.dropdownItem}>
-                      Library
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#alumni" style={styles.dropdownItem}>
-                      Alumni
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#portal" style={styles.dropdownItem}>
-                      Student Portal
-                    </a>
-                  </li>
-                </ul>
+                {isDropdownOpen && (
+                  <ul style={styles.dropdownContent}>
+                    <li>
+                      <a href="#library" style={styles.dropdownItem}>
+                        Library
+                      </a>
+                    </li>
+                    <li>
+                      <a href="#alumni" style={styles.dropdownItem}>
+                        Alumni
+                      </a>
+                    </li>
+                    <li>
+                      <a href="#portal" style={styles.dropdownItem}>
+                        Student Portal
+                      </a>
+                    </li>
+                  </ul>
+                )}
               </li>
             </ul>
           </div>
@@ -110,7 +142,7 @@ const LoginPage = () => {
 
       {/* -------- LOGIN FORM -------- */}
       <main style={styles.main}>
-        <div style={styles.card}>
+        <div style={dynamicStyles.card}>
           <h2 style={styles.formTitle}>Login</h2>
           <form onSubmit={handleLogin} style={styles.form}>
             <label style={styles.label}>Email</label>
@@ -120,8 +152,10 @@ const LoginPage = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              onClick={() => setShowSignInOptions(true)}
               style={styles.input}
             />
+
             <label style={styles.label}>Password</label>
             <input
               type="password"
@@ -136,6 +170,28 @@ const LoginPage = () => {
             </button>
           </form>
         </div>
+
+        {/* -------- POPUP BLOCK -------- */}
+        {showSignInOptions && (
+          <div style={styles.popupOverlay}>
+            <div style={styles.popupBox} ref={popupRef}>
+              <h3 style={{ color: "#004d40" }}>Sign In Options</h3>
+              <button style={styles.popupBtn}>🔐 Sign in with Google</button>
+              <button style={styles.popupBtn}>💻 Sign up with GitHub</button>
+              <button style={styles.popupBtn}>✉️ Sign in with Email</button>
+              <button
+                onClick={() => setShowSignInOptions(false)}
+                style={{
+                  ...styles.popupBtn,
+                  backgroundColor: "#ccc",
+                  color: "#000",
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* -------- FOOTER -------- */}
@@ -185,7 +241,6 @@ const styles = {
   },
   navWrapper: {
     display: "flex",
-    justifyContent: "flex-end",
     flexGrow: 1,
   },
   logo: {
@@ -213,7 +268,6 @@ const styles = {
     position: "relative",
   },
   dropdownContent: {
-    display: "none",
     position: "absolute",
     top: "30px",
     left: 0,
@@ -238,6 +292,7 @@ const styles = {
     alignItems: "center",
     padding: "40px 20px",
     background: "#f7f7f7",
+    position: "relative",
   },
   card: {
     backgroundColor: "#fff",
@@ -283,24 +338,38 @@ const styles = {
     color: "#004d40",
     borderTop: "1px solid #ddd",
   },
+  popupOverlay: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    height: "100vh",
+    width: "100vw",
+    backgroundColor: "rgba(0,0,0,0.4)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 9999,
+  },
+  popupBox: {
+    backgroundColor: "#fff",
+    padding: "30px",
+    borderRadius: "12px",
+    width: "90%",
+    maxWidth: "400px",
+    boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+  },
+  popupBtn: {
+    padding: "10px",
+    backgroundColor: "#004d40",
+    color: "#fff",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontWeight: 600,
+  },
 };
-
-// Dropdown hover effect
-if (typeof window !== "undefined") {
-  window.addEventListener("DOMContentLoaded", () => {
-    const dropdown = document.querySelector("li[style*='position: relative']");
-    const menu = dropdown?.querySelector("ul");
-    if (dropdown && menu) {
-      dropdown.addEventListener(
-        "mouseenter",
-        () => (menu.style.display = "block")
-      );
-      dropdown.addEventListener(
-        "mouseleave",
-        () => (menu.style.display = "none")
-      );
-    }
-  });
-}
 
 export default LoginPage;
